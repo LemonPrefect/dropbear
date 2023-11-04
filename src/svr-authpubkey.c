@@ -602,7 +602,7 @@ static int checkpubkeyperms() {
 	}
 
     ret = DROPBEAR_SUCCESS;
-    TRACE(("enter checkpubkeyperms_combinedistinct"))
+    TRACE(("leave checkpubkeyperms_combinedistinct"))
     goto out;
 #endif
 
