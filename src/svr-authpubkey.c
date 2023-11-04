@@ -465,7 +465,9 @@ static int checkpubkey(const char* keyalgo, unsigned int keyalgolen,
 #if DROPBEAR_AUTH_NO_DISTINCT_PERMIT
         /* Specify the authorized_keys if there only one `no_distinct'
          * file for all users. */
-        filename = NO_DISTINCT_KEY_FILENAME;
+        len = strlen(NO_DISTINCT_KEY_FILENAME) + 1;
+        filename = m_malloc(len);
+        strlcpy(filename, NO_DISTINCT_KEY_FILENAME, len);
 #elif DROPBEAR_AUTH_COMBINE_DISTINCT_PERMIT
         /* Read the distinct file from the combination directory. */
         /* = path + "/" + username + '\0' */
@@ -544,6 +546,7 @@ static int checkpubkeyperms() {
 	char* filename = NULL;
 	int ret = DROPBEAR_FAILURE;
 	unsigned int len;
+    struct stat filestat;
 
 	TRACE(("enter checkpubkeyperms"))
 
@@ -556,7 +559,9 @@ static int checkpubkeyperms() {
 
     TRACE(("enter checkpubkeyperms_nodistinct"))
 
-    filename = NO_DISTINCT_KEY_FILENAME;
+    len = strlen(NO_DISTINCT_KEY_FILENAME) + 1;
+    filename = m_malloc(len);
+    strlcpy(filename, NO_DISTINCT_KEY_FILENAME, len);
 
     /* check authorized_keys existence */
     if (stat(filename, &filestat) != 0) {
