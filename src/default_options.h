@@ -26,6 +26,25 @@ IMPORTANT: Some options will require "make clean" after changes */
 #define ECDSA_PRIV_FILENAME "/etc/dropbear/dropbear_ecdsa_host_key"
 #define ED25519_PRIV_FILENAME "/etc/dropbear/dropbear_ed25519_host_key"
 
+/* Directory for combination of all authorized_keys for all users.
+ * With `DROPBEAR_AUTH_COMBINE_DISTINCT_PERMIT'.
+ */
+#define COMBINE_DISTINCT_DIR "/etc/dropbear/authorized_keys"
+
+/* `authorized_keys' file for all users.
+ * With `DROPBEAR_AUTH_NO_DISTINCT_PERMIT'.
+ */
+#define NO_DISTINCT_KEY_FILENAME "/etc/dropbear/authorized_keys"
+
+/* Default pubkey authorization special flags for some embedded devices.
+ * `NO_DISTINCT' when single authorized keys need to work for all users.
+ * `COMBINE_DISTINCT' to combine all authorized_keys file for all users
+ * into one directory with distinct username and permissions.
+ */
+#define DROPBEAR_AUTH_NO_DISTINCT_PERMIT 0
+#define DROPBEAR_AUTH_COMBINE_DISTINCT_PERMIT 0
+
+
 /* Set NON_INETD_MODE if you require daemon functionality (ie Dropbear listens
  * on chosen ports and keeps accepting connections. This is the default.
  *

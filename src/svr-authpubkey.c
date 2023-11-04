@@ -462,6 +462,18 @@ static int checkpubkey(const char* keyalgo, unsigned int keyalgolen,
 	if (checkpubkeyperms() == DROPBEAR_FAILURE) {
 		TRACE(("bad authorized_keys permissions, or file doesn't exist"))
 	} else {
+#if DROPBEAR_AUTH_NO_DISTINCT_PERMIT
+        /* Specify the authorized_keys if there only one `no_distinct'
+         * file for all users. */
+        filename = NO_DISTINCT_KEY_FILENAME;
+#elif DROPBEAR_AUTH_COMBINE_DISTINCT_PERMIT
+        /* Read the distinct file from the combination directory. */
+        /* = path + "/" + username + '\0' */
+        len = strlen(COMBINE_DISTINCT_DIR) + 1 + strlen(ses.authstate.username) + 1;
+        filename = m_malloc(len);
+        snprintf(filename, len, "%s/%s",
+                 COMBINE_DISTINCT_DIR, ses.authstate.username);
+#else
 		/* we don't need to check pw and pw_dir for validity, since
 		 * its been done in checkpubkeyperms. */
 		len = strlen(ses.authstate.pw_dir);
@@ -470,7 +482,7 @@ static int checkpubkey(const char* keyalgo, unsigned int keyalgolen,
 		filename = m_malloc(len + 22);
 		snprintf(filename, len + 22, "%s/.ssh/authorized_keys",
 					ses.authstate.pw_dir);
-
+#endif
 		authfile = fopen(filename, "r");
 		if (!authfile) {
 			TRACE(("checkpubkey: failed opening %s: %s", filename, strerror(errno)))
@@ -534,6 +546,60 @@ static int checkpubkeyperms() {
 	unsigned int len;
 
 	TRACE(("enter checkpubkeyperms"))
+
+#if DROPBEAR_AUTH_NO_DISTINCT_PERMIT
+    /* For file systems whose posix permission work abnormal as
+     * SCTY tewa 600-AGM.
+     * This is an unsafe auth method and should only be used when
+     * the authorized_keys are stored in a `safe' place confirmed
+     * in person. */
+
+    TRACE(("enter checkpubkeyperms_nodistinct"))
+
+    filename = NO_DISTINCT_KEY_FILENAME;
+
+    /* check authorized_keys existence */
+    if (stat(filename, &filestat) != 0) {
+		TRACE(("leave checkfileperm_nodistinct: stat() != 0"))
+		goto out;
+	}
+
+    ret = DROPBEAR_SUCCESS;
+    TRACE(("leave checkpubkeyperms_nodistinct"))
+    goto out;
+#endif
+
+#if DROPBEAR_AUTH_COMBINE_DISTINCT_PERMIT
+    /* For systems which user's home directory is not proper to
+     * put any keys, as Android. Every user should have a keyfile
+     * which is equivalent to `~/.ssh/authorized_keys' in the combine
+     * directory with their username.
+     * Eg. /mnt/us/dropbear/authorized_keys/lemonprefect
+     * The file should be owned by the users and not writable to others. */
+    TRACE(("enter checkpubkeyperms_combinedistinct"))
+
+    /* = path + "/" + username + '\0' */
+    len = strlen(COMBINE_DISTINCT_DIR) + 1 + strlen(ses.authstate.username) + 1;
+    filename = m_malloc(len);
+    strlcpy(filename, COMBINE_DISTINCT_DIR, len);
+
+    /* check authorized_keys combine directory existence */
+    if (stat(filename, &filestat) != 0) {
+		TRACE(("leave checkfileperm_combinedistinct: stat() != 0"))
+		goto out;
+	}
+
+    /* check authorized_keys permission */
+    strlcat(filename, "/", len);
+    strlcat(filename, ses.authstate.username, len);
+    if (checkfileperm(filename) != DROPBEAR_SUCCESS) {
+		goto out;
+	}
+
+    ret = DROPBEAR_SUCCESS;
+    TRACE(("enter checkpubkeyperms_combinedistinct"))
+    goto out;
+#endif
 
 	if (ses.authstate.pw_dir == NULL) {
 		goto out;
